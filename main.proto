@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package main;
+
+service Kube2 {
+    rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResult) {}
+}
+
+message CreateContainerRequest {
+    string image = 1;
+    string imageTag = 2;
+}
+
+message CreateContainerResult {
+    bool success = 1;
+}
