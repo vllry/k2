@@ -6,6 +6,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	api "github.com/vllry/k2/api/0.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
@@ -16,11 +17,11 @@ import (
 
 type server struct{}
 
-func (s *server) CreateContainer(ctx context.Context, query *CreateContainerRequest) (*CreateContainerResult, error) {
+func (s *server) CreateContainer(ctx context.Context, query *api.CreateContainerRequest) (*api.CreateContainerResult, error) {
 	fmt.Println("grpc")
 	err := createContainerFromImage(query.Image, query.ImageTag)
 
-	return &CreateContainerResult{Success: true}, err
+	return &api.CreateContainerResult{Success: true}, err
 }
 
 func createContainerFromImage(image string, tag string) error {
@@ -69,11 +70,11 @@ func main() {
 			log.Fatalf("did not connect: %v", err)
 		}
 		defer conn.Close()
-		c := NewKube2Client(conn)
+		c := api.NewKube2Client(conn)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
-		r, err := c.CreateContainer(ctx, &CreateContainerRequest{Image:"nginx", ImageTag:"latest"})
+		r, err := c.CreateContainer(ctx, &api.CreateContainerRequest{Image: "nginx", ImageTag: "latest"})
 		if err != nil {
 			log.Fatalf("could not launch: %v", err)
 		}
@@ -84,7 +85,7 @@ func main() {
 			log.Fatalf("failed to listen: %v", err)
 		}
 		s := grpc.NewServer()
-		RegisterKube2Server(s, &server{})
+		api.RegisterKube2Server(s, &server{})
 		reflection.Register(s)
 		if err := s.Serve(listener); err != nil {
 			log.Fatalf("failed to serve: %v", err)

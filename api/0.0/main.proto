@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package main;
+package api;
 
 service Kube2 {
     rpc CreateContainer(CreateContainerRequest) returns (CreateContainerResult) {}
