@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	dockerclient "github.com/docker/docker/client"
 	"github.com/vllry/k2/api/0.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -25,7 +25,7 @@ func (s *server) CreateContainer(ctx context.Context, query *api.CreateContainer
 func createContainerFromImage(image string, tag string) error {
 	ctx := context.Background()
 
-	cli, err := client.NewEnvClient()
+	cli, err := dockerclient.NewEnvClient()
 	if err != nil {
 		panic(err)
 	}
@@ -61,6 +61,13 @@ func createContainerFromImage(image string, tag string) error {
 }
 
 func main() {
+	db, err := newDb()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Connected to db.")
+	db.set("test", "value")
+
 	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
