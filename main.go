@@ -10,24 +10,42 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
+	"math/rand"
 	"net"
 )
 
-type server struct{}
+type server struct {
+	db *dbConn
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+func randStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
 
 func (s *server) CreateContainer(ctx context.Context, query *api.CreateContainerRequest) (*api.CreateContainerResult, error) {
-	fmt.Println("grpc")
-	err := createContainerFromImage(query.Image, query.ImageTag)
+	fmt.Println("CreateContainer call")
+	containerName := randStringBytes(5)
+	s.db.set("/containers/status" + containerName, "PENDING")
+	err := createContainerFromImage(containerName, query.Image, query.ImageTag)
+	if err != nil {
+		return nil, err
+	}
+	s.db.set("/containers/status" + containerName, "STARTED")
 
 	return &api.CreateContainerResult{Success: true}, err
 }
 
-func createContainerFromImage(image string, tag string) error {
+func createContainerFromImage(name string, image string, tag string) error {
 	ctx := context.Background()
 
 	cli, err := dockerclient.NewEnvClient()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	containerRef, err := cli.ContainerCreate(
@@ -38,7 +56,7 @@ func createContainerFromImage(image string, tag string) error {
 		},
 		nil,
 		nil,
-		"",
+		name,
 	)
 	if err != nil {
 		return err
@@ -66,14 +84,13 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to db.")
-	db.set("test", "value")
 
 	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
-	api.RegisterKube2Server(s, &server{})
+	api.RegisterKube2Server(s, &server{db})
 	reflection.Register(s)
 	if err := s.Serve(listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
