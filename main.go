@@ -25,7 +25,7 @@ func (s *server) CreateContainer(ctx context.Context, query *api.CreateContainer
 func createContainerFromImage(image string, tag string) error {
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts()
+	cli, err := client.NewEnvClient()
 	if err != nil {
 		panic(err)
 	}
