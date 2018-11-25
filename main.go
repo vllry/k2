@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"strings"
 )
 
 type server struct {
@@ -51,13 +52,22 @@ func (s *server) CreateContainer(ctx context.Context, query *api.CreateContainer
 		}
 
 		if foundContainerId {
-			cli := dockerclient.Client{}
-			info, err := cli.ContainerInspect(context.Background(), containerId)
+			cli, err := dockerclient.NewEnvClient()
+			_, err = cli.ContainerInspect(context.Background(), containerId)
 			if err != nil {
-				fmt.Println("Error getting Docker details", err)
-				return nil, err
+				fmt.Println(err)
+				if strings.Contains(err.Error(), "No such container") {
+					fmt.Println("Create missing container.")
+					err = addContainer(s.db, containerName, query.Image, query.ImageTag)
+					if err != nil {
+						return &api.CreateContainerResult{Success: false}, err
+					}
+					return &api.CreateContainerResult{Success: true}, nil
+				} else {
+					fmt.Println("Error getting Docker details", err)
+					return nil, err
+				}
 			}
-			fmt.Println(info)
 		} else {  // Indicates bug - container was half tracked.
 			err = addContainer(s.db, containerName, query.Image, query.ImageTag)
 			if err != nil {
