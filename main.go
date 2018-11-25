@@ -28,24 +28,71 @@ func randStringBytes(n int) string {
 }
 
 func (s *server) CreateContainer(ctx context.Context, query *api.CreateContainerRequest) (*api.CreateContainerResult, error) {
-	fmt.Println("CreateContainer call")
-	containerName := randStringBytes(5)
-	s.db.set("/containers/status" + containerName, "PENDING")
-	err := createContainerFromImage(containerName, query.Image, query.ImageTag)
+	//containerName := randStringBytes(5)
+	containerName := query.Image  // Use a deterministic name for now.
+	containerStatusPath := "/containers/" + containerName + "/status"
+	containerIdPath := "/containers/" + containerName + "/id"
+
+	fmt.Println("Trying to start " + containerName)
+	_, foundStatus, err := s.db.get(containerStatusPath)
 	if err != nil {
+		fmt.Println("failed to get status")
 		return nil, err
 	}
-	s.db.set("/containers/status" + containerName, "STARTED")
+	if !foundStatus {  // Start if not already started.
+		addContainer(s.db, containerName, query.Image, query.ImageTag)
+		return &api.CreateContainerResult{Success: true}, err
+	} else {  // Check that logged container is actually/still running.
+		fmt.Println("Check on previously-running container")
+		containerId, foundContainerId, err := s.db.get(containerIdPath)
+		if err != nil {
+			fmt.Println("Error getting container details from database", err)
+			return nil, err
+		}
 
-	return &api.CreateContainerResult{Success: true}, err
+		if foundContainerId {
+			cli := dockerclient.Client{}
+			info, err := cli.ContainerInspect(context.Background(), containerId)
+			if err != nil {
+				fmt.Println("Error getting Docker details", err)
+				return nil, err
+			}
+			fmt.Println(info)
+		} else {  // Indicates bug - container was half tracked.
+			err = addContainer(s.db, containerName, query.Image, query.ImageTag)
+			if err != nil {
+				return &api.CreateContainerResult{Success: false}, err
+			}
+			return &api.CreateContainerResult{Success: true}, nil
+		}
+	}
+	// Does anything reach this?
+	return &api.CreateContainerResult{Success:false}, nil
 }
 
-func createContainerFromImage(name string, image string, tag string) error {
+func addContainer(db *dbConn, containerName string, image string, tag string) error {
+	// TODO split into consts or builder funcs.
+	containerStatusPath := "/containers/" + containerName + "/status"
+	containerIdPath := "/containers/" + containerName + "/id"
+
+	fmt.Println("Create container")
+	db.set(containerStatusPath, "PENDING")
+	containerId, err := createContainerFromImage(containerName, image, tag)
+	if err != nil {
+		fmt.Println("Failed to create")
+		return err
+	}
+	db.set(containerIdPath, containerId)
+	db.set(containerStatusPath, "STARTED")
+	return nil
+}
+
+func createContainerFromImage(name string, image string, tag string) (string, error) {
 	ctx := context.Background()
 
 	cli, err := dockerclient.NewEnvClient()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	containerRef, err := cli.ContainerCreate(
@@ -59,23 +106,23 @@ func createContainerFromImage(name string, image string, tag string) error {
 		name,
 	)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if err := cli.ContainerStart(ctx, containerRef.ID, types.ContainerStartOptions{}); err != nil {
-		return err
+		return "", err
 	}
 
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
-	if err != nil {
-		return err
-	}
+	//containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
+	//if err != nil {
+	//	return err
+	//}
 
-	for _, containerRef := range containers {
-		fmt.Printf("%s %s\n", containerRef.ID[:10], containerRef.Image)
-	}
+	//for _, containerRef := range containers {
+	//	fmt.Printf("%s %s\n", containerRef.ID[:10], containerRef.Image)
+	//}
 
-	return nil
+	return containerRef.ID, nil
 }
 
 func main() {

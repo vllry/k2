@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	etcdclient "go.etcd.io/etcd/client"
+	"strings"
 	"time"
 )
 
@@ -32,11 +33,15 @@ func (conn *dbConn) set(key string, value string) (*etcdclient.Response, error) 
 	return conn.kApi.Set(context.Background(), key, value, nil)
 }
 
-func (conn *dbConn) get(key string) (string, error) {
+func (conn *dbConn) get(key string) (string, bool, error) {
 	resp, err := conn.kApi.Get(context.Background(), key, nil)
 	if err != nil {
-		return "", err
+		if strings.Contains(err.Error(), "Key not found") {
+			return "", false, nil
+		} else {
+			return "", false, err
+		}
 	} else {
-		return resp.Node.Value, nil
+		return resp.Node.Value, true, nil
 	}
 }
