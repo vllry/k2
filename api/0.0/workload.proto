@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package api;
+
+service WorkloadApi {
+    rpc WorkloadApply(Workload) returns (WorkloadSubmitted) {}
+}
+
+message Workload {
+    string Yaml = 1;
+}
+
+message WorkloadSubmitted {
+    bool Success = 1;
+}
