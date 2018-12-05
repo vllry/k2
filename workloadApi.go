@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/vllry/k2/api/0.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -27,9 +28,14 @@ func startWorkloadApiServer(db *dbConn) {
 	}
 }
 
+type Fake struct {
+	Id string
+}
 func (s *workloadApiServer) WorkloadApply(ctx context.Context, query *api.Workload) (*api.WorkloadSubmitted, error) {
 	var spec WorkloadSpec
 	err := yaml.Unmarshal([]byte(query.Yaml), &spec)
+	fmt.Println(query.Yaml)
+	fmt.Println(spec)
 	if err != nil {
 		return &api.WorkloadSubmitted{Success: false}, err
 	}

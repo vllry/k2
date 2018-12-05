@@ -5,7 +5,9 @@ package main
 
 // This file is starting to feel like a function overload...
 
-import "gopkg.in/yaml.v2"
+import (
+	"gopkg.in/yaml.v2"
+)
 
 type WorkloadSpec struct {
 	SpecVersionMajor int
@@ -16,9 +18,9 @@ type WorkloadSpec struct {
 }
 
 type WorkloadContainerSpec struct {
-	name  string
-	image string
-	tag   string
+	Name  string
+	Image string
+	Tag   string
 }
 
 // Creates/updates a workload.
@@ -44,13 +46,13 @@ func saveWorkloadSpec(db *dbConn, w *WorkloadSpec) error {
 	return err
 }
 
+// TODO replace this approach. Need more situational awareness with unscheduling.
 func generateContainerTargetList(containerList []string, prefix string, replicas int) ([]string, bool) {
 	numContainers := len(containerList)
 	if numContainers == replicas {
 		return containerList, false
 	}
 	if numContainers > replicas {
-		// TODO unschedule intelligently.
 		containerList = containerList[:replicas]
 	} else if numContainers < replicas {
 		for i := 0; i < replicas-numContainers; i++ {
