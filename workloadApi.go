@@ -31,6 +31,7 @@ func startWorkloadApiServer(db *dbConn) {
 type Fake struct {
 	Id string
 }
+
 func (s *workloadApiServer) WorkloadApply(ctx context.Context, query *api.Workload) (*api.WorkloadSubmitted, error) {
 	var spec WorkloadSpec
 	err := yaml.Unmarshal([]byte(query.Yaml), &spec)

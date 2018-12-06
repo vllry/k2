@@ -37,6 +37,7 @@ func submitWorkload(db *dbConn, w *WorkloadSpec) error {
 	return nil
 }
 
+// Create (or overwrite existing) workload spec.
 func saveWorkloadSpec(db *dbConn, w *WorkloadSpec) error {
 	bytes, err := yaml.Marshal(&w)
 	if err != nil {
@@ -77,6 +78,12 @@ func updateContainerTargetList(db *dbConn, workloadId string, replicas int) erro
 
 func saveWorkloadContainerList(db *dbConn, workloadId string, containerIds []string) error {
 	_, err := db.setYaml("/workloads/"+workloadId+"/containers", containerIds)
+	return err
+}
+
+// Save the definition of
+func saveWorkloadPodSpec(db *dbConn, containers []WorkloadContainerSpec) error {
+	_, err := db.setYaml("/workloads/workloads/podSpecs", containers)
 	return err
 }
 

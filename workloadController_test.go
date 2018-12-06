@@ -5,8 +5,8 @@ import "testing"
 func TestGenerateContainerTargetList(t *testing.T) {
 	tables := []struct {
 		containerList []string
-		prefix string
-		replicas int
+		prefix        string
+		replicas      int
 	}{
 		{make([]string, 0), "test", 0},
 		{make([]string, 0), "test", 1},

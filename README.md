@@ -1,3 +1,5 @@
+See `DESIGN.md` for architecture and design details.
+
 # Developing
 
 ## Dependencies

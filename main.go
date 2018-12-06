@@ -75,7 +75,7 @@ func main() {
 	}
 	fmt.Println("Connected to db.")
 
-	//go scheduleController(db)
+	go startScheduleController(db)
 	startWorkloadApiServer(db)
 
 	listener, err := net.Listen("tcp", ":50052")
